@@ -1076,14 +1076,18 @@ abstract class Node extends Model {
   public function setDepth() {
     $self = $this;
 
-    $this->getConnection()->transaction(function() use ($self) {
-      $self->reload();
+    try {
+        $this->getConnection()->transaction(function() use ($self) {
+            $self->reload();
 
-      $level = $self->getLevel();
+            $level = $self->getLevel();
 
-      $self->newNestedSetQuery()->where($self->getKeyName(), '=', $self->getKey())->update(array($self->getDepthColumnName() => $level));
-      $self->setAttribute($self->getDepthColumnName(), $level);
-    });
+            $self->newNestedSetQuery()->where($self->getKeyName(), '=', $self->getKey())->update(array($self->getDepthColumnName() => $level));
+            $self->setAttribute($self->getDepthColumnName(), $level);
+        });
+    } catch (\Throwable $exception) {
+        $this->getConnection()->rollBack();
+    }
 
     return $this;
   }
