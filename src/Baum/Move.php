@@ -101,9 +101,12 @@ class Move {
     if ( $this->hasChange() ) {
       $self = $this;
 
-      $this->node->getConnection()->transaction(function() use ($self) {
-        $self->updateStructure();
-      });
+      try {
+          $this->node->getConnection()->transaction(function() use ($self) {
+              $self->updateStructure();
+          });
+      } catch (\Throwable $exception) {
+      }
 
       $this->target->reload();
 
