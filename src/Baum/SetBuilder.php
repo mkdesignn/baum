@@ -50,10 +50,15 @@ class SetBuilder {
     // setting the right indexes and saving the nodes...
     $self = $this;
 
-    $this->node->getConnection()->transaction(function() use ($self) {
-      foreach($self->roots() as $root)
-        $self->rebuildBounds($root, 0);
-    });
+    try{
+        $this->node->getConnection()->transaction(function() use ($self) {
+            foreach($self->roots() as $root)
+                $self->rebuildBounds($root, 0);
+        });
+    } catch (\Throwable $exception){
+
+    }
+
   }
 
   /**

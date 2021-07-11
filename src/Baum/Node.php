@@ -1100,22 +1100,27 @@ abstract class Node extends Model {
   public function setDepthWithSubtree() {
     $self = $this;
 
-    $this->getConnection()->transaction(function() use ($self) {
-      $self->reload();
+    try{
+        $this->getConnection()->transaction(function() use ($self) {
+            $self->reload();
 
-      $self->descendantsAndSelf()->select($self->getKeyName())->lockForUpdate()->get();
+            $self->descendantsAndSelf()->select($self->getKeyName())->lockForUpdate()->get();
 
-      $oldDepth = !is_null($self->getDepth()) ? $self->getDepth() : 0;
+            $oldDepth = !is_null($self->getDepth()) ? $self->getDepth() : 0;
 
-      $newDepth = $self->getLevel();
+            $newDepth = $self->getLevel();
 
-      $self->newNestedSetQuery()->where($self->getKeyName(), '=', $self->getKey())->update(array($self->getDepthColumnName() => $newDepth));
-      $self->setAttribute($self->getDepthColumnName(), $newDepth);
+            $self->newNestedSetQuery()->where($self->getKeyName(), '=', $self->getKey())->update(array($self->getDepthColumnName() => $newDepth));
+            $self->setAttribute($self->getDepthColumnName(), $newDepth);
 
-      $diff = $newDepth - $oldDepth;
-      if ( !$self->isLeaf() && $diff != 0 )
-        $self->descendants()->increment($self->getDepthColumnName(), $diff);
-    });
+            $diff = $newDepth - $oldDepth;
+            if ( !$self->isLeaf() && $diff != 0 )
+                $self->descendants()->increment($self->getDepthColumnName(), $diff);
+        });
+    } catch (\Throwable $exception){
+
+    }
+
 
     return $this;
   }
@@ -1131,26 +1136,31 @@ abstract class Node extends Model {
 
     $self = $this;
 
-    $this->getConnection()->transaction(function() use ($self) {
-      $self->reload();
+    try{
+        $this->getConnection()->transaction(function() use ($self) {
+            $self->reload();
 
-      $lftCol = $self->getLeftColumnName();
-      $rgtCol = $self->getRightColumnName();
-      $lft    = $self->getLeft();
-      $rgt    = $self->getRight();
+            $lftCol = $self->getLeftColumnName();
+            $rgtCol = $self->getRightColumnName();
+            $lft    = $self->getLeft();
+            $rgt    = $self->getRight();
 
-      // Apply a lock to the rows which fall past the deletion point
-      $self->newNestedSetQuery()->where($lftCol, '>=', $lft)->select($self->getKeyName())->lockForUpdate()->get();
+            // Apply a lock to the rows which fall past the deletion point
+            $self->newNestedSetQuery()->where($lftCol, '>=', $lft)->select($self->getKeyName())->lockForUpdate()->get();
 
-      // Prune children
-      $self->newNestedSetQuery()->where($lftCol, '>', $lft)->where($rgtCol, '<', $rgt)->delete();
+            // Prune children
+            $self->newNestedSetQuery()->where($lftCol, '>', $lft)->where($rgtCol, '<', $rgt)->delete();
 
-      // Update left and right indexes for the remaining nodes
-      $diff = $rgt - $lft + 1;
+            // Update left and right indexes for the remaining nodes
+            $diff = $rgt - $lft + 1;
 
-      $self->newNestedSetQuery()->where($lftCol, '>', $rgt)->decrement($lftCol, $diff);
-      $self->newNestedSetQuery()->where($rgtCol, '>', $rgt)->decrement($rgtCol, $diff);
-    });
+            $self->newNestedSetQuery()->where($lftCol, '>', $rgt)->decrement($lftCol, $diff);
+            $self->newNestedSetQuery()->where($rgtCol, '>', $rgt)->decrement($rgtCol, $diff);
+        });
+    } catch (\Throwable $exception){
+
+    }
+
   }
 
   /**
@@ -1163,17 +1173,22 @@ abstract class Node extends Model {
 
     $self = $this;
 
-    $this->getConnection()->transaction(function() use ($self) {
-      $lftCol = $self->getLeftColumnName();
-      $rgtCol = $self->getRightColumnName();
-      $lft    = $self->getLeft();
-      $rgt    = $self->getRight();
+    try{
+        $this->getConnection()->transaction(function() use ($self) {
+            $lftCol = $self->getLeftColumnName();
+            $rgtCol = $self->getRightColumnName();
+            $lft    = $self->getLeft();
+            $rgt    = $self->getRight();
 
-      $diff = $rgt - $lft + 1;
+            $diff = $rgt - $lft + 1;
 
-      $self->newNestedSetQuery()->where($lftCol, '>=', $lft)->increment($lftCol, $diff);
-      $self->newNestedSetQuery()->where($rgtCol, '>=', $lft)->increment($rgtCol, $diff);
-    });
+            $self->newNestedSetQuery()->where($lftCol, '>=', $lft)->increment($lftCol, $diff);
+            $self->newNestedSetQuery()->where($rgtCol, '>=', $lft)->increment($rgtCol, $diff);
+        });
+    } catch (\Throwable $exception){
+
+    }
+
   }
 
   /**
@@ -1186,16 +1201,21 @@ abstract class Node extends Model {
 
     $self = $this;
 
-    $this->getConnection()->transaction(function() use ($self) {
-      $self->newNestedSetQuery()
-        ->withTrashed()
-        ->where($self->getLeftColumnName(), '>', $self->getLeft())
-        ->where($self->getRightColumnName(), '<', $self->getRight())
-        ->update(array(
-          $self->getDeletedAtColumn() => null,
-          $self->getUpdatedAtColumn() => $self->{$self->getUpdatedAtColumn()}
-        ));
-    });
+    try{
+        $this->getConnection()->transaction(function() use ($self) {
+            $self->newNestedSetQuery()
+                ->withTrashed()
+                ->where($self->getLeftColumnName(), '>', $self->getLeft())
+                ->where($self->getRightColumnName(), '<', $self->getRight())
+                ->update(array(
+                    $self->getDeletedAtColumn() => null,
+                    $self->getUpdatedAtColumn() => $self->{$self->getUpdatedAtColumn()}
+                ));
+        });
+    } catch (\Throwable $exception){
+
+    }
+
   }
 
   /**
